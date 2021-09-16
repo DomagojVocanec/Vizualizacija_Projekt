@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script src="http://d3js.org/d3.v3.min.js"></script>
+		<script src="http://d3js.org/topojson.v1.min.js"></script>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	</head>
+
+	<body>
+		<h1 align="center">Koronakarta Hrvatske</h1>
+		<script type="text/javascript">
+			function zoomed() {
+			projection.translate(d3.event.translate).scale(d3.event.scale);
+			g.selectAll("path").attr("d", path);
+			}
+			 
+			function clicked(d) {
+			var x, y, k;
+			 
+				var centroid = path.centroid(d);
+				x = centroid[0];
+				y = centroid[1];
+				k = 4;
+				centered = d;
+			 
+			g.selectAll("path")
+				.classed("active", centered && function(d) { return d === centered; });
+			 
+			d3.select("#naziv_zupanije")
+			.html("Županija: " + d.properties.Zupanija + "</br>" +  "Trenutno zaraženo: " + d.properties.trenutno_zarazenih + "</br>" + "Ukupno zaraženo: " + d.properties.ukupno_slucajeva + "</br>" + "Ukupno preminulih: " + d.properties.ukupno_preminulih)
+			
+			
+			g.transition()
+				.duration(750)
+				.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
+				.style("stroke-width", 1.5 / k + "px");
+			 
+				x = width / 2;
+				y = height / 2;
+				k = 1;
+				centered = null;
+			 
+				g.transition()
+				.delay(5000)
+				.duration(750)
+				.attr("transform", "translate(" + width / 2 + "," + height / 2 + ")scale(" + k + ")translate(" + -x + "," + -y + ")")
+				.style("stroke-width", 1.5 / k + "px")
+				.each('end',function(){
+			
+			d3.select("#naziv_zupanije")
+			.html(" ");
+				});
+			}
+			 
+			var width = 960;
+			var height = 700;
+			 
+			var projection = d3.geo.mercator()
+			.center([0, 10])
+			.scale(6000)
+			.translate([17600, 4500])
+			.rotate([-180, 0]);
+			 
+			var path = d3.geo.path()
+			.projection(projection);
+			 
+			var svg = d3.select("body")
+			.append("svg")
+			.attr("width", width) 
+			.attr("height", height) 
+			.style("background", "white");
+			 
+			d3.select("body").append("div")
+			   .attr("id","naziv_zupanije");
+			 
+			 
+			var zoom = d3.behavior.zoom()
+				.translate(projection.translate())
+				.scale(projection.scale())
+				.scaleExtent([height, 20 * height])
+				.on("zoom", zoomed);
+			 
+			var g = svg.append("g")
+				.call(zoom);
+			 
+			 
+			var opacity = d3.scale.linear().domain([67, 1543]).range([0.1, 1]);
+			 
+			 
+			d3.json("cro_regv3.json", function(error, cro) 
+			{ 
+			var data = topojson.feature(cro, cro.objects.layer1); 
+			var states = g.selectAll("path.county") 
+			.data(data.features) 
+			.enter() 
+			.append("path") 
+			.attr("class", "county") 
+			.attr("id", function(d) { return d.id; }) 
+			.attr("d", path)
+				.style("fill", "green")
+				.style("stroke", "yellow")
+				.style("stroke-width", 2)
+				.style("stroke-opacity", 1)
+				.style("opacity", function(d) {
+						return opacity(d.properties.trenutno_zarazenih);
+						})
+			.on("click", clicked);
+
+			var centered;
+			 
+			});
+			 
+		</script>
+	</body>
+</html>	
+
+<style>
+
+
+	#naziv_zupanije {
+		font-family: Times New Roman;
+		font-size: 22px;
+		text-align: center;
+		margin-right: 30px;
+		margin-bottom: 30px;
+	}
+	
+</style>
